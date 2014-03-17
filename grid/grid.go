@@ -27,11 +27,11 @@ func (t *tile) Move (dest *Cell) {
   fmt.Printf("Moving tile at X %d,Y %d to Cell at X %d, Y %d", t.X, t.Y, dest.X, dest.Y)
   fmt.Println()
   t.Prev = t.Current
-  t.Current.X = dest.Pos
+  t.Current = dest.Pos
 }
 
 func (t *tile) Merge (tn *tile) {
-  fmt.Printf("Merging tile %d,%d with tile %d,%d", t.X, t.Y, tn.X, tn.Y)
+  fmt.Printf("Merging tile %d,%d with tile %d,%d", t.Current, tn.Current)
   fmt.Println()
   t.Value += tn.Value //Future proofs for other merge rules. Fibonacci game??? Yes please. TODO
   t.MergeHistory = append(t.MergeHistory, tn)
@@ -50,9 +50,6 @@ func randTileVal() int {
     return 2
   }
 }
-
-func randPos(max int) int {
-  return randVal().Int() % max }
 
 //Grid tracks the tiles
 type Grid struct {
