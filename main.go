@@ -8,8 +8,8 @@ import (
 )
 
 func printGrid (g grid.Grid) {
-  for x:= 0; x < g.Size; x++ {
-    for y:= g.Size - 1; y >= 0; y-- {
+  for y:= g.Size - 1; y >= 0; y-- {
+    for x:= 0; x < g.Size; x++ {
       if(g.Cells[x][y].Tile != nil) {
         fmt.Printf("%v ", g.Cells[x][y].Tile.Value)
       } else {

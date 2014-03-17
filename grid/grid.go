@@ -8,24 +8,30 @@ import (
 
 var idSeed uint= 0;
 
+//Position structure
+type pos struct {
+  X int
+  Y int
+}
+
 //Tiles track value and position on the grid
 type tile struct {
   ID uint
   Value int
   MergeHistory []*tile
-  X int
-  Y int
+  Current pos
+  Prev pos
 }
 
 func (t *tile) Move (dest *Cell) {
   fmt.Printf("Moving tile at X %d,Y %d to Cell at X %d, Y %d", t.X, t.Y, dest.X, dest.Y)
   fmt.Println()
-  t.X = dest.X
-  t.Y = dest.Y
+  t.Prev = t.Current
+  t.Current.X = dest.Pos
 }
 
 func (t *tile) Merge (tn *tile) {
-  fmt.Printf("Tile %d %d merging with tile %d %d", t.X, t.Y, tn.X, tn.Y)
+  fmt.Printf("Merging tile %d,%d with tile %d,%d", t.X, t.Y, tn.X, tn.Y)
   fmt.Println()
   t.Value += tn.Value //Future proofs for other merge rules. Fibonacci game??? Yes please. TODO
   t.MergeHistory = append(t.MergeHistory, tn)
@@ -58,8 +64,7 @@ type Grid struct {
 
 type Cell struct {
   Tile *tile
-  X int
-  Y int
+  Pos pos
 }
 
 //Create the grid
@@ -71,8 +76,12 @@ func (g *Grid) Build () {
     g.Cells[i] = make([]*Cell, g.Size)
     for j := range g.Cells[i] {
       cell := new(Cell)
-      cell.X = i
-      cell.Y = j
+
+      cell.Pos := pos{
+        X: i,
+        Y: j,
+      }
+
       g.Cells[i][j] = cell
     }
   }
@@ -108,8 +117,7 @@ func (g *Grid) NewTile() tile {
     ID: id,
     Value: randTileVal(),
     MergeHistory: make([]*tile, 0),
-    X: cell.X,
-    Y: cell.Y,
+    Current: cell.Pos,
   }
 
   g.Cells[cell.X][cell.Y].Tile = &newTile
@@ -159,9 +167,6 @@ func (g *Grid) getEdge (v *vector) (max, min, delta int) {
     delta = 1
   }
 
-  fmt.Printf("Max: %d, Min: %d, Delta: %d", max, min, delta)
-  fmt.Println()
-
   return max, min, delta
 }
 
@@ -175,9 +180,6 @@ func (g *Grid) getEdge (v *vector) (max, min, delta int) {
         //Remove tile ([2, 2, 4] .. [2 <-- 2, 4] .. [4, 4])
 func (g *Grid) Shift(d int) *Grid {
   v := dMap[d]
-  fmt.Println(v)
-
-
 
   start, end, delta := g.getEdge(&v)
 
@@ -201,7 +203,7 @@ func (g *Grid) Shift(d int) *Grid {
         if(loc != start) { //And if the pointer is not left at the beginning, which would mean we've moved no cells,
           potentialMerge := g.Cells[col][loc - delta].Tile; //Peek backwards to the last tile we moved
 
-          if(!merged && potentialMerge.Value == cell.Tile.Value) { //If we didn't merge last time around and If the tiles match
+          if(!merged && potentialMerge != nil && potentialMerge.Value == cell.Tile.Value) { //If we didn't merge last time around and If the tiles match
               //Do a merge.
               potentialMerge.Merge(cell.Tile)
               cell.Tile = nil
@@ -215,15 +217,16 @@ func (g *Grid) Shift(d int) *Grid {
         cell.Tile.Move(dest)
         dest.Tile = cell.Tile
 
-        if(cell.X != dest.X && cell.Y != dest.Y) {
+        if(cell.Prev != dest.Pos) {
           cell.Tile = nil
         }
 
         loc += delta
       }
     }
-    fmt.Println("LOC", loc)
   }
+
+  g.NewTile()
 
   return g
 }
