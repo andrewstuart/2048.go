@@ -24,14 +24,14 @@ type tile struct {
 }
 
 func (t *tile) Move (dest *Cell) {
-  fmt.Printf("Moving tile at X %d,Y %d to Cell at X %d, Y %d", t.X, t.Y, dest.X, dest.Y)
+  fmt.Printf("Moving tile at %d to Cell at %d", t.Current, dest.Pos)
   fmt.Println()
   t.Prev = t.Current
   t.Current = dest.Pos
 }
 
 func (t *tile) Merge (tn *tile) {
-  fmt.Printf("Merging tile %d,%d with tile %d,%d", t.Current, tn.Current)
+  fmt.Printf("Merging tile %d with tile %d", t.Current, tn.Current)
   fmt.Println()
   t.Value += tn.Value //Future proofs for other merge rules. Fibonacci game??? Yes please. TODO
   t.MergeHistory = append(t.MergeHistory, tn)
@@ -74,7 +74,7 @@ func (g *Grid) Build () {
     for j := range g.Cells[i] {
       cell := new(Cell)
 
-      cell.Pos := pos{
+      cell.Pos = pos{
         X: i,
         Y: j,
       }
@@ -107,7 +107,7 @@ func (g *Grid) NewTile() tile {
   i := randVal().Int() % len(avail)
   cell := avail[i]
 
-  id := idSeed
+  id := idSeed //Will concurrency screw with this?
   idSeed += 1
 
   newTile := tile{
@@ -117,7 +117,7 @@ func (g *Grid) NewTile() tile {
     Current: cell.Pos,
   }
 
-  g.Cells[cell.X][cell.Y].Tile = &newTile
+  g.Cells[cell.Pos.X][cell.Pos.Y].Tile = &newTile
 
   g.Tiles = append(g.Tiles, &newTile)
 
@@ -214,7 +214,7 @@ func (g *Grid) Shift(d int) *Grid {
         cell.Tile.Move(dest)
         dest.Tile = cell.Tile
 
-        if(cell.Prev != dest.Pos) {
+        if(cell.Tile.Prev != dest.Pos) {
           cell.Tile = nil
         }
 
