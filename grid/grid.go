@@ -1,6 +1,7 @@
 package grid
 
 import (
+  "fmt"
   "math/rand"
   "time"
 )
@@ -12,9 +13,20 @@ type tile struct {
   ID uint
   Value int
   MergeHistory []*tile
+  X int
+  Y int
+}
+
+func (t *tile) Move (dest *Cell) {
+  fmt.Printf("Moving tile at X %d,Y %d to Cell at X %d, Y %d", t.X, t.Y, dest.X, dest.Y)
+  fmt.Println()
+  t.X = dest.X
+  t.Y = dest.Y
 }
 
 func (t *tile) Merge (tn *tile) {
+  fmt.Printf("Tile %d %d merging with tile %d %d", t.X, t.Y, tn.X, tn.Y)
+  fmt.Println()
   t.Value += tn.Value //Future proofs for other merge rules. Fibonacci game??? Yes please. TODO
   t.MergeHistory = append(t.MergeHistory, tn)
 }
@@ -39,24 +51,37 @@ func randPos(max int) int {
 //Grid tracks the tiles
 type Grid struct {
   Size int
+  StartCells int
   Tiles []*tile
   Cells [][]*Cell
 }
 
 type Cell struct {
   Tile *tile
+  X int
+  Y int
 }
 
 //Create the grid
 func (g *Grid) Build () {
   g.Cells = make([][]*Cell, g.Size)
-  g.Tiles = make([]*tile, g.Size * g.Size)
+  g.Tiles = make([]*tile, 0)
 
   for i := range g.Cells {
     g.Cells[i] = make([]*Cell, g.Size)
     for j := range g.Cells[i] {
-      g.Cells[i][j] = new(Cell)
+      cell := new(Cell)
+      cell.X = i
+      cell.Y = j
+      g.Cells[i][j] = cell
     }
+  }
+
+  start := g.StartCells
+
+  for start != 0 {
+    start = start - 1
+    g.NewTile()
   }
 }
 
@@ -66,14 +91,15 @@ func (g *Grid) Reset() {
       g.Cells[i][j].Tile = nil
     }
   }
-  g.Tiles = make([]*tile, g.Size * g.Size)
+  g.Tiles = make([]*tile, 0)
 }
 
 func (g *Grid) NewTile() tile {
 
+  avail := g.EmptyCells()
   //Two random values between 0 and Grid.Size
-  x := randVal().Int() % g.Size
-  y := randVal().Int() % g.Size
+  i := randVal().Int() % len(avail)
+  cell := avail[i]
 
   id := idSeed
   idSeed += 1
@@ -81,10 +107,12 @@ func (g *Grid) NewTile() tile {
   newTile := tile{
     ID: id,
     Value: randTileVal(),
-    MergeHistory: make([]*tile, 11),
+    MergeHistory: make([]*tile, 0),
+    X: cell.X,
+    Y: cell.Y,
   }
 
-  g.Cells[x][y].Tile = &newTile
+  g.Cells[cell.X][cell.Y].Tile = &newTile
 
   g.Tiles = append(g.Tiles, &newTile)
 
@@ -94,37 +122,47 @@ func (g *Grid) NewTile() tile {
 type vector struct {
   X int
   Y int
+  Label string
 }
 
 var dMap = map[int]vector{
   1: vector{ //Up
     X: 0,
     Y: 1,
+    Label: "Up",
   },
   2: vector{ //Right
     X: 1,
     Y: 0,
+    Label: "Right",
   },
   3: vector{ //Down
     X: 0,
     Y: -1,
+    Label: "Down",
   },
   4: vector{ //Left
     X: -1,
     Y: 0,
+    Label: "Left",
   },
 }
 
 func (g *Grid) getEdge (v *vector) (max, min, delta int) {
   if(v.X == 1 || v.Y == 1) {
-    max = g.Size
-    delta = 1
-  } else {
-    max = 0
+    max = g.Size - 1
+    min = - 1
     delta = -1
+  } else {
+    min = g.Size
+    max = 0
+    delta = 1
   }
 
-  return max, g.Size - max - delta, delta
+  fmt.Printf("Max: %d, Min: %d, Delta: %d", max, min, delta)
+  fmt.Println()
+
+  return max, min, delta
 }
 
 //Get direction
@@ -135,8 +173,11 @@ func (g *Grid) getEdge (v *vector) (max, min, delta int) {
       //If tile value matches prev tile value
         //Merge tile to prev 
         //Remove tile ([2, 2, 4] .. [2 <-- 2, 4] .. [4, 4])
-func (g *Grid) Move(d int) *Grid {
+func (g *Grid) Shift(d int) *Grid {
   v := dMap[d]
+  fmt.Println(v)
+
+
 
   start, end, delta := g.getEdge(&v)
 
@@ -171,12 +212,42 @@ func (g *Grid) Move(d int) *Grid {
           }
         }
 
+        cell.Tile.Move(dest)
         dest.Tile = cell.Tile
-        cell.Tile = nil
+
+        if(cell.X != dest.X && cell.Y != dest.Y) {
+          cell.Tile = nil
+        }
+
         loc += delta
       }
     }
+    fmt.Println("LOC", loc)
   }
+
+  return g
+}
+
+func (g *Grid) EmptyCells() []*Cell {
+  var ret []*Cell
+  for i:=0; i < g.Size; i++ {
+    for j:=0; j < g.Size; j++ {
+      if(g.Cells[i][j].Tile == nil) {
+        ret = append(ret, g.Cells[i][j])
+      }
+    }
+  }
+
+  return ret
+}
+
+func NewGrid(s, c int) Grid {
+  g := Grid{
+    Size: s,
+    StartCells: c,
+  }
+
+  g.Build()
 
   return g
 }

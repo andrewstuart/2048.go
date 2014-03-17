@@ -1,22 +1,45 @@
 package main
 
 import (
-  "fmt"
   "os"
+  "fmt"
   "twentyfortyeight/grid"
   "encoding/json"
 )
 
-func main() {
-  grid := grid.Grid{
-    Size: 4,
+func printGrid (g grid.Grid) {
+  for x:= 0; x < g.Size; x++ {
+    for y:= g.Size - 1; y >= 0; y-- {
+      if(g.Cells[x][y].Tile != nil) {
+        fmt.Printf("%v ", g.Cells[x][y].Tile.Value)
+      } else {
+        fmt.Print("0 ")
+      }
+    }
+    fmt.Println()
   }
+}
 
-  grid.Build()
+
+func main() {
+
+  grid := grid.NewGrid(4, 2)
 
   enc := json.NewEncoder(os.Stdout)
 
   enc.Encode(grid)
 
-  fmt.Println(grid)
+  printGrid(grid)
+
+  grid.Shift(1)
+  printGrid(grid)
+
+  grid.Shift(2)
+  printGrid(grid)
+
+  grid.Shift(3)
+  printGrid(grid)
+
+  grid.Shift(4)
+  printGrid(grid)
 }
