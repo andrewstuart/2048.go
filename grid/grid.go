@@ -21,9 +21,11 @@ type tile struct {
   MergeHistory []*tile
   Current pos
   Prev pos
+  New bool
 }
 
 func (t *tile) Move (dest *Cell) {
+  t.New = false;
   fmt.Printf("Moving tile at %d to Cell at %d", t.Current, dest.Pos)
   fmt.Println()
   t.Prev = t.Current
@@ -116,6 +118,7 @@ func (g *Grid) NewTile() tile {
     Value: randTileVal(),
     MergeHistory: make([]*tile, 0),
     Current: cell.Pos,
+    New: true,
   }
 
   g.Cells[cell.Pos.X][cell.Pos.Y].Tile = &newTile
@@ -202,7 +205,15 @@ func (g *Grid) Shift(d int) *Grid {
           //Always increment finger 2 after a merge
           f2 += delta
         } else if dest.Tile != nil {
-          f2 += delta //TODO Figure out how to pick a new dest cell elegantly if they don't match values.  Do I need three fingers?
+          f2 += delta //TODO I wish this was prettier.
+
+          //Now reevaluate the cells changing.
+          if(v.X == 0) {
+            dest = g.Cells[i][f2]
+          } else {
+            dest = g.Cells[f2][i]
+          }
+
           cell.Tile.Move(dest)
           dest.Tile = cell.Tile
         } else {

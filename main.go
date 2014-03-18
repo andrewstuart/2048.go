@@ -8,16 +8,26 @@ import (
 )
 
 func printGrid (g grid.Grid) {
+  fmt.Println()
   for y:= g.Size - 1; y >= 0; y-- {
     for x:= 0; x < g.Size; x++ {
       if(g.Cells[x][y].Tile != nil) {
+        new := g.Cells[x][y].Tile.New
+
+        if(new) {
+          fmt.Printf("\033[1m")
+        }
         fmt.Printf("%d ", g.Cells[x][y].Tile.Value)
+        if(new) {
+          fmt.Printf("\033[0m")
+        }
       } else {
-        fmt.Print("0 ")
+        fmt.Print("X ")
       }
     }
     fmt.Println()
   }
+  fmt.Println()
 }
 
 
