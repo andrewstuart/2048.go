@@ -154,18 +154,18 @@ var dMap = map[int]vector{
   },
 }
 
-func (g *Grid) getEdge (v *vector) (max, min, delta int) {
+func (g *Grid) getEdge (v *vector) (start, end, delta int) {
   if(v.X == 1 || v.Y == 1) {
-    max = g.Size - 1
-    min = - 1
+    end = - 1
+    start = g.Size - 1
     delta = -1
   } else {
-    min = g.Size
-    max = 0
+    end = g.Size
+    start = 0
     delta = 1
   }
 
-  return max, min, delta
+  return start, end, delta
 }
 
 //Get direction
@@ -201,10 +201,13 @@ func (g *Grid) Shift(d int) *Grid {
           dest.Tile.Merge(cell.Tile)
           //Always increment finger 2 after a merge
           f2 += delta
+        } else if dest.Tile != nil {
+          f2 += delta //TODO Figure out how to pick a new dest cell elegantly if they don't match values.  Do I need three fingers?
+          cell.Tile.Move(dest)
+          dest.Tile = cell.Tile
         } else {
           cell.Tile.Move(dest)
           dest.Tile = cell.Tile
-          f2 += delta
         }
         cell.Tile = nil
       }
