@@ -182,44 +182,31 @@ func (g *Grid) Shift(d int) *Grid {
   start, end, delta := g.getEdge(&v)
 
   for i:= start; i != end; i += delta {
-    loc := start
-    merged := false
+    f2 := start
     for j:= start; j != end; j += delta {
-      var col int
+
       var cell, dest *Cell
+
       if(v.X == 0) { //Horizontal motion is zero. Direction is in Y
-        col = i
-        cell = g.Cells[col][j]
-        dest = g.Cells[col][loc]
+        cell = g.Cells[i][j]
+        dest = g.Cells[i][f2]
       } else {
-        col = j
-        cell = g.Cells[col][i]
-        dest = g.Cells[col][loc]
+        cell = g.Cells[j][i]
+        dest = g.Cells[f2][i]
       }
 
-      if(cell.Tile != nil) { //If there is a tile for the cell we're checking
-        if(loc != start) { //And if the pointer is not left at the beginning, which would mean we've moved no cells,
-          potentialMerge := g.Cells[col][loc - delta].Tile; //Peek backwards to the last tile we moved
-
-          if(!merged && potentialMerge != nil && potentialMerge.Value == cell.Tile.Value) { //If we didn't merge last time around and If the tiles match
-              //Do a merge.
-              potentialMerge.Merge(cell.Tile)
-              cell.Tile = nil
-              merged = true
-              continue //Then continue
-          } else {
-            merged = false
-          }
+      if(cell.Tile != nil && dest.Pos != cell.Pos) { //If there's something here and somewhere to move it. Otherwise do nothing this iteration
+        if(dest.Tile != nil && dest.Tile.Value == cell.Tile.Value) { //If the value at the second finger matches the value at the current finger, merge.
+          //Do a merge.
+          dest.Tile.Merge(cell.Tile)
+          //Always increment finger 2 after a merge
+          f2 += delta
+        } else {
+          cell.Tile.Move(dest)
+          dest.Tile = cell.Tile
+          f2 += delta
         }
-
-        cell.Tile.Move(dest)
-        dest.Tile = cell.Tile
-
-        if(cell.Tile.Prev != dest.Pos) {
-          cell.Tile = nil
-        }
-
-        loc += delta
+        cell.Tile = nil
       }
     }
   }
