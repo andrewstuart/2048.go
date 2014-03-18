@@ -32,8 +32,9 @@ func (t *tile) Move (dest *Cell) {
 
 func (t *tile) Merge (tn *tile) {
   fmt.Printf("Merging tile %d with tile %d", t.Current, tn.Current)
-  fmt.Println()
   t.Value += tn.Value //Future proofs for other merge rules. Fibonacci game??? Yes please. TODO
+  fmt.Printf("New value is %d", t.Value)
+  fmt.Println()
   t.MergeHistory = append(t.MergeHistory, tn)
 }
 
@@ -168,7 +169,7 @@ func (g *Grid) getEdge (v *vector) (max, min, delta int) {
 }
 
 //Get direction
-//For table row (vector perpendicular to direction)
+//For table slice (vector perpendicular to direction)
   //For row cell (vector opposite to direction)
     //If cell has tile
       //Add to 'new row' slice
@@ -222,9 +223,7 @@ func (g *Grid) Shift(d int) *Grid {
       }
     }
   }
-
   g.NewTile()
-
   return g
 }
 
