@@ -39,17 +39,12 @@ func main() {
 
   enc.Encode(grid)
 
-  printGrid(grid)
+  s := make(chan int)
+  grid.Score = s
+  //printGrid(grid)
 
-  grid.Shift(1)
-  printGrid(grid)
-
-  grid.Shift(2)
-  printGrid(grid)
-
-  grid.Shift(3)
-  printGrid(grid)
-
-  grid.Shift(4)
+    for i:=0; i < 1000; i++ {
+      grid.Shift(i % 4 + 1)
+    }
   printGrid(grid)
 }

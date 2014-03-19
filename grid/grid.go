@@ -1,9 +1,9 @@
 package grid
 
 import (
-  "fmt"
   "math/rand"
   "time"
+  "fmt"
 )
 
 var idSeed uint= 0;
@@ -22,21 +22,17 @@ type tile struct {
   Current pos
   Prev pos
   New bool
+  Score chan int
 }
 
 func (t *tile) Move (dest *Cell) {
   t.New = false;
-  fmt.Printf("Moving tile at %d to Cell at %d", t.Current, dest.Pos)
-  fmt.Println()
   t.Prev = t.Current
   t.Current = dest.Pos
 }
 
 func (t *tile) Merge (tn *tile) {
-  fmt.Printf("Merging tile %d with tile %d", t.Current, tn.Current)
   t.Value += tn.Value //Future proofs for other merge rules. Fibonacci game??? Yes please. TODO
-  fmt.Printf("New value is %d", t.Value)
-  fmt.Println()
   t.MergeHistory = append(t.MergeHistory, tn)
 }
 
@@ -48,8 +44,7 @@ func randVal() *rand.Rand {
 
 func randTileVal() int {
   if randVal().Float64() > 0.9 {
-    return 4
-  } else {
+    return 4 } else {
     return 2
   }
 }
@@ -60,6 +55,8 @@ type Grid struct {
   StartCells int
   Tiles []*tile
   Cells [][]*Cell
+  totalScore int
+  Score chan int
 }
 
 type Cell struct {
@@ -105,6 +102,12 @@ func (g *Grid) Reset() {
 
 func (g *Grid) NewTile() tile {
 
+  if(len(g.Tiles) == g.Size * g.Size) {
+    if(!g.matchesRemaining()) {
+      fmt.Println(g.Cells)
+    }
+  }
+
   avail := g.EmptyCells()
   //Two random values between 0 and Grid.Size
   i := randVal().Int() % len(avail)
@@ -124,6 +127,9 @@ func (g *Grid) NewTile() tile {
   g.Cells[cell.Pos.X][cell.Pos.Y].Tile = &newTile
 
   g.Tiles = append(g.Tiles, &newTile)
+
+  s := make(chan int)
+  newTile.Score = s
 
   return newTile
 }
@@ -173,13 +179,13 @@ func (g *Grid) getEdge (v *vector) (start, end, delta int) {
 
 //Get direction
 //For table slice (vector perpendicular to direction)
-  //For row cell (vector opposite to direction)
-    //If cell has tile
-      //Add to 'new row' slice
-      //If tile value matches prev tile value
-        //Merge tile to prev 
-        //Remove tile ([2, 2, 4] .. [2 <-- 2, 4] .. [4, 4])
-func (g *Grid) Shift(d int) *Grid {
+//For row cell (vector opposite to direction)
+//If cell has tile
+//Add to 'new row' slice
+//If tile value matches prev tile value
+//Merge tile to prev 
+//Remove tile ([2, 2, 4] .. [2 <-- 2, 4] .. [4, 4])
+func (g *Grid) Shift(d int) (*Grid) {
   v := dMap[d]
 
   start, end, delta := g.getEdge(&v)
@@ -198,34 +204,61 @@ func (g *Grid) Shift(d int) *Grid {
         dest = g.Cells[f2][i]
       }
 
-      if(cell.Tile != nil && dest.Pos != cell.Pos) { //If there's something here and somewhere to move it. Otherwise do nothing this iteration
-        if(dest.Tile != nil && dest.Tile.Value == cell.Tile.Value) { //If the value at the second finger matches the value at the current finger, merge.
-          //Do a merge.
-          dest.Tile.Merge(cell.Tile)
-          //Always increment finger 2 after a merge
-          f2 += delta
-        } else if dest.Tile != nil {
-          f2 += delta //TODO I wish this was prettier.
+      if(cell.Tile != nil) { //If there's something here and somewhere to move it. Otherwise do nothing this iteration
+        cell.Tile.New = false
+        if(dest.Pos != cell.Pos) {
+          if(dest.Tile != nil && dest.Tile.Value == cell.Tile.Value) { //If the value at the second finger matches the value at the current finger, merge.
+            //Do a merge.
+            dest.Tile.Merge(cell.Tile)
+            //Always increment finger 2 after a merge
+            f2 += delta
+          } else if dest.Tile != nil {
 
-          //Now reevaluate the cells changing.
-          if(v.X == 0) {
-            dest = g.Cells[i][f2]
+            f2 += delta
+            if(v.X == 0) {
+              //Now reevaluate the cells changing.
+              dest = g.Cells[i][f2]
+            } else {
+              dest = g.Cells[f2][i]
+            }
+
+            cell.Tile.Move(dest)
+            dest.Tile = cell.Tile
           } else {
-            dest = g.Cells[f2][i]
+            cell.Tile.Move(dest)
+            dest.Tile = cell.Tile
           }
-
-          cell.Tile.Move(dest)
-          dest.Tile = cell.Tile
-        } else {
-          cell.Tile.Move(dest)
-          dest.Tile = cell.Tile
+          cell.Tile = nil
         }
-        cell.Tile = nil
       }
     }
   }
   g.NewTile()
   return g
+}
+
+func (g *Grid) matchesRemaining() bool {
+  for i := 0; i < g.Size; i++ {
+    for j := 0 + i % 2; j < g.Size; j = j + 2 {
+      for k:=1; k <= 4; k++ {
+        v := dMap[k]
+        cell := g.Cells[i][j]
+
+        y := i + v.Y
+        x := j + v.X
+
+        if(y >= 0 && y < g.Size && x >= 0 && x < g.Size) {
+          cmp := g.Cells[x][y]
+
+          if(cell.Tile.Value == cmp.Tile.Value) {
+            return true
+          }
+        }
+      }
+    }
+  }
+
+  return false
 }
 
 func (g *Grid) EmptyCells() []*Cell {
