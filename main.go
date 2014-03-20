@@ -32,15 +32,11 @@ func printGrid (g grid.Grid) {
 
 func main() {
 
-  grid := grid.NewGrid(4, 2)
+  grid := grid.NewGrid(4, 2, 512)
 
   enc := json.NewEncoder(os.Stdout)
 
-  enc.Encode(grid)
-
-  s := make(chan int)
-  grid.Score = s
-  //printGrid(grid)
+  enc.Encode(grid.Tiles)
 
     for i:=0; i < 10000; i++ {
       grid.Shift(i % 4 + 1)

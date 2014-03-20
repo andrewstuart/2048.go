@@ -22,7 +22,6 @@ type tile struct {
   Current pos
   Prev pos
   New bool
-  Score chan int
 }
 
 func (t *tile) Move (dest *Cell) {
@@ -65,8 +64,8 @@ type Grid struct {
   StartCells int
   Tiles tileList
   Cells [][]*Cell
-  totalScore int
-  Score chan int
+  Score int
+  maxScore int
 }
 
 type Cell struct {
@@ -107,6 +106,7 @@ func (g *Grid) Reset() {
       g.Cells[i][j].Tile = nil
     }
   }
+  g.Score = 0
   g.Tiles = make(tileList, 0)
 }
 
@@ -114,7 +114,8 @@ func (g *Grid) newTile() {
 
   if(len(g.Tiles) == g.Size * g.Size) {
     if(!g.matchesRemaining()) {
-      fmt.Println("YOU LOSE")
+      fmt.Printf("YOU LOSE. Your score was: %d", g.Score)
+      fmt.Println()
       g.Reset()
     }
   }
@@ -222,6 +223,12 @@ func (g *Grid) Shift(d int) (*Grid) {
             if dest.Tile.Value == cell.Tile.Value { //If the value at the second finger matches the value at the current finger, merge.
               //Do a merge.
               dest.Tile.Merge(cell.Tile)
+              g.Score += dest.Tile.Value
+              if(dest.Tile.Value == g.maxScore) {
+                fmt.Printf("YOU WIN! Score: %d", g.Score)
+                fmt.Println()
+                g.Reset()
+              }
               //Now remove the old 
               g.Tiles = g.Tiles.remove(cell.Tile)
               //Always increment finger2 after a merge
@@ -296,10 +303,12 @@ func (g *Grid) EmptyCells() (ret []*Cell) {
   return ret
 }
 
-func NewGrid(s, c int) Grid {
+func NewGrid(s, c, m int) Grid {
   g := Grid{
     Size: s,
     StartCells: c,
+    Score: 0,
+    maxScore: m,
   }
 
   g.Build()
