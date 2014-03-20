@@ -18,7 +18,7 @@ type pos struct {
 type tile struct {
   ID uint
   Value int
-  MergeHistory []*tile
+  MergeHistory tileList
   Current pos
   Prev pos
   New bool
@@ -26,7 +26,6 @@ type tile struct {
 }
 
 func (t *tile) Move (dest *Cell) {
-  t.New = false;
   t.Prev = t.Current
   t.Current = dest.Pos
 }
@@ -49,11 +48,22 @@ func randTileVal() int {
   }
 }
 
+type tileList []*tile
+
+func (t tileList) remove(tr *tile) tileList {
+  for i, tl := range t {
+    if(tl == tr) {
+      return append(t[:i], t[i+1:]...)
+    }
+  }
+  return t
+}
+
 //Grid tracks the tiles
 type Grid struct {
   Size int
   StartCells int
-  Tiles []*tile
+  Tiles tileList
   Cells [][]*Cell
   totalScore int
   Score chan int
@@ -67,7 +77,7 @@ type Cell struct {
 //Create the grid
 func (g *Grid) Build () {
   g.Cells = make([][]*Cell, g.Size)
-  g.Tiles = make([]*tile, 0)
+  g.Tiles = make(tileList, 0)
 
   for i := range g.Cells {
     g.Cells[i] = make([]*Cell, g.Size)
@@ -87,7 +97,7 @@ func (g *Grid) Build () {
 
   for start != 0 {
     start = start - 1
-    g.NewTile()
+    g.newTile()
   }
 }
 
@@ -97,18 +107,23 @@ func (g *Grid) Reset() {
       g.Cells[i][j].Tile = nil
     }
   }
-  g.Tiles = make([]*tile, 0)
+  g.Tiles = make(tileList, 0)
 }
 
-func (g *Grid) NewTile() tile {
+func (g *Grid) newTile() {
 
   if(len(g.Tiles) == g.Size * g.Size) {
     if(!g.matchesRemaining()) {
-      fmt.Println(g.Cells)
+      fmt.Println("YOU LOSE")
+      g.Reset()
     }
   }
 
   avail := g.EmptyCells()
+
+  if(len(avail) == 0) {
+    return
+  }
   //Two random values between 0 and Grid.Size
   i := randVal().Int() % len(avail)
   cell := avail[i]
@@ -119,19 +134,15 @@ func (g *Grid) NewTile() tile {
   newTile := tile{
     ID: id,
     Value: randTileVal(),
-    MergeHistory: make([]*tile, 0),
+    MergeHistory: make(tileList, 0),
     Current: cell.Pos,
     New: true,
   }
 
-  g.Cells[cell.Pos.X][cell.Pos.Y].Tile = &newTile
-
   g.Tiles = append(g.Tiles, &newTile)
+  cell.Tile = &newTile
 
-  s := make(chan int)
-  newTile.Score = s
-
-  return newTile
+  return
 }
 
 type vector struct {
@@ -206,34 +217,41 @@ func (g *Grid) Shift(d int) (*Grid) {
 
       if(cell.Tile != nil) { //If there's something here and somewhere to move it. Otherwise do nothing this iteration
         cell.Tile.New = false
-        if(dest.Pos != cell.Pos) {
-          if(dest.Tile != nil && dest.Tile.Value == cell.Tile.Value) { //If the value at the second finger matches the value at the current finger, merge.
-            //Do a merge.
-            dest.Tile.Merge(cell.Tile)
-            //Always increment finger 2 after a merge
-            f2 += delta
-          } else if dest.Tile != nil {
-
-            f2 += delta
-            if(v.X == 0) {
-              //Now reevaluate the cells changing.
-              dest = g.Cells[i][f2]
+        if dest.Pos != cell.Pos { //If they're not the same cells
+          if dest.Tile != nil {
+            if dest.Tile.Value == cell.Tile.Value { //If the value at the second finger matches the value at the current finger, merge.
+              //Do a merge.
+              dest.Tile.Merge(cell.Tile)
+              //Now remove the old 
+              g.Tiles = g.Tiles.remove(cell.Tile)
+              //Always increment finger2 after a merge
+              f2 += delta
+              cell.Tile = nil
             } else {
-              dest = g.Cells[f2][i]
-            }
+              f2 += delta
+              if(v.X == 0) {
+                //Now reevaluate the cells changing.
+                dest = g.Cells[i][f2]
+              } else {
+                dest = g.Cells[f2][i]
+              }
 
-            cell.Tile.Move(dest)
-            dest.Tile = cell.Tile
+              if dest.Pos != cell.Pos {
+                cell.Tile.Move(dest)
+                dest.Tile = cell.Tile
+                cell.Tile = nil
+              }
+            }
           } else {
             cell.Tile.Move(dest)
             dest.Tile = cell.Tile
+            cell.Tile = nil
           }
-          cell.Tile = nil
         }
       }
     }
   }
-  g.NewTile()
+  g.newTile()
   return g
 }
 
@@ -250,6 +268,8 @@ func (g *Grid) matchesRemaining() bool {
         if(y >= 0 && y < g.Size && x >= 0 && x < g.Size) {
           cmp := g.Cells[x][y]
 
+          fmt.Println(cell.Tile.Value, cmp.Tile.Value)
+
           if(cell.Tile.Value == cmp.Tile.Value) {
             return true
           }
@@ -261,12 +281,12 @@ func (g *Grid) matchesRemaining() bool {
   return false
 }
 
-func (g *Grid) EmptyCells() []*Cell {
-  var ret []*Cell
+func (g *Grid) EmptyCells() (ret []*Cell) {
   for i:=0; i < g.Size; i++ {
     for j:=0; j < g.Size; j++ {
-      if(g.Cells[i][j].Tile == nil) {
-        ret = append(ret, g.Cells[i][j])
+      c := g.Cells[i][j]
+      if(c.Tile == nil) {
+        ret = append(ret, c)
       }
     }
   }

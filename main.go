@@ -27,7 +27,6 @@ func printGrid (g grid.Grid) {
     }
     fmt.Println()
   }
-  fmt.Println()
 }
 
 
@@ -43,8 +42,8 @@ func main() {
   grid.Score = s
   //printGrid(grid)
 
-    for i:=0; i < 1000; i++ {
+    for i:=0; i < 200; i++ {
       grid.Shift(i % 4 + 1)
+      printGrid(grid)
     }
-  printGrid(grid)
 }
