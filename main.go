@@ -42,8 +42,7 @@ func main() {
   grid.Score = s
   //printGrid(grid)
 
-    for i:=0; i < 200; i++ {
+    for i:=0; i < 10000; i++ {
       grid.Shift(i % 4 + 1)
-      printGrid(grid)
     }
 }
