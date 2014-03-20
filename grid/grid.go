@@ -252,33 +252,35 @@ func (g *Grid) Shift(d int) (*Grid) {
     }
   }
   g.newTile()
+
   return g
 }
 
 func (g *Grid) matchesRemaining() bool {
+  matchFound := false
   for i := 0; i < g.Size; i++ {
     for j := 0 + i % 2; j < g.Size; j = j + 2 {
       for k:=1; k <= 4; k++ {
         v := dMap[k]
         cell := g.Cells[i][j]
 
-        y := i + v.Y
-        x := j + v.X
+        x := i + v.X
+        y := j + v.Y
 
         if(y >= 0 && y < g.Size && x >= 0 && x < g.Size) {
           cmp := g.Cells[x][y]
-
-          fmt.Println(cell.Tile.Value, cmp.Tile.Value)
+          //fmt.Printf("vector: %v, cell: %v, compare: %v, values: %v, %v", v, cell.Pos, cmp.Pos, cell.Tile.Value, cmp.Tile.Value)
+          //fmt.Println()
 
           if(cell.Tile.Value == cmp.Tile.Value) {
-            return true
+            matchFound = true
+            return matchFound
           }
         }
       }
     }
   }
-
-  return false
+  return matchFound
 }
 
 func (g *Grid) EmptyCells() (ret []*Cell) {
