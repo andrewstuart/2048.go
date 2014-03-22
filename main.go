@@ -32,13 +32,16 @@ func printGrid (g grid.Grid) {
 
 func main() {
 
-  grid := grid.NewGrid(4, 2, 512)
+  grid, move := grid.NewGrid(4, 2, 512)
 
   enc := json.NewEncoder(os.Stdout)
 
-  enc.Encode(grid.Tiles)
-
-    for i:=0; i < 10000; i++ {
-      grid.Shift(i % 4 + 1)
+  for i:=0; i < 10000; i++ {
+    select {
+    case g := <-grid:
+      enc.Encode(g)
+    default:
+      move <- (i % 4 + 1)
     }
+  }
 }

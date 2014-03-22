@@ -15,21 +15,21 @@ type pos struct {
 }
 
 //Tiles track value and position on the grid
-type tile struct {
+type Tile struct {
   ID uint
   Value int
-  MergeHistory tileList
+  MergeHistory TileList
   Current pos
   Prev pos
   New bool
 }
 
-func (t *tile) Move (dest *Cell) {
+func (t *Tile) Move (dest *Cell) {
   t.Prev = t.Current
   t.Current = dest.Pos
 }
 
-func (t *tile) Merge (tn *tile) {
+func (t *Tile) Merge (tn *Tile) {
   t.Value += tn.Value //Future proofs for other merge rules. Fibonacci game??? Yes please. TODO
   t.MergeHistory = append(t.MergeHistory, tn)
 }
@@ -47,9 +47,9 @@ func randTileVal() int {
   }
 }
 
-type tileList []*tile
+type TileList []*Tile
 
-func (t tileList) remove(tr *tile) tileList {
+func (t TileList) remove(tr *Tile) TileList {
   for i, tl := range t {
     if(tl == tr) {
       return append(t[:i], t[i+1:]...)
@@ -58,25 +58,25 @@ func (t tileList) remove(tr *tile) tileList {
   return t
 }
 
-//Grid tracks the tiles
+//Grid tracks the Tiles
 type Grid struct {
   Size int
   StartCells int
-  Tiles tileList
+  Tiles TileList
   Cells [][]*Cell
   Score int
   maxScore int
 }
 
 type Cell struct {
-  Tile *tile
+  Tile *Tile
   Pos pos
 }
 
 //Create the grid
 func (g *Grid) Build () {
   g.Cells = make([][]*Cell, g.Size)
-  g.Tiles = make(tileList, 0)
+  g.Tiles = make(TileList, 0)
 
   for i := range g.Cells {
     g.Cells[i] = make([]*Cell, g.Size)
@@ -107,7 +107,7 @@ func (g *Grid) Reset() {
     }
   }
   g.Score = 0
-  g.Tiles = make(tileList, 0)
+  g.Tiles = make(TileList, 0)
 }
 
 func (g *Grid) newTile() {
@@ -132,10 +132,10 @@ func (g *Grid) newTile() {
   id := idSeed //Will concurrency screw with this?
   idSeed += 1
 
-  newTile := tile{
+  newTile := Tile{
     ID: id,
     Value: randTileVal(),
-    MergeHistory: make(tileList, 0),
+    MergeHistory: make(TileList, 0),
     Current: cell.Pos,
     New: true,
   }
@@ -192,11 +192,11 @@ func (g *Grid) getEdge (v *vector) (start, end, delta int) {
 //Get direction
 //For table slice (vector perpendicular to direction)
 //For row cell (vector opposite to direction)
-//If cell has tile
+//If cell has Tile
 //Add to 'new row' slice
-//If tile value matches prev tile value
-//Merge tile to prev 
-//Remove tile ([2, 2, 4] .. [2 <-- 2, 4] .. [4, 4])
+//If Tile value matches prev Tile value
+//Merge Tile to prev 
+//Remove Tile ([2, 2, 4] .. [2 <-- 2, 4] .. [4, 4])
 func (g *Grid) Shift(d int) (*Grid) {
   v := dMap[d]
 
@@ -303,7 +303,11 @@ func (g *Grid) EmptyCells() (ret []*Cell) {
   return ret
 }
 
-func NewGrid(s, c, m int) Grid {
+//Returns a new grid. Negative moves sent to the m channel will terminate the grid.
+func NewGrid(s, c, m int) (ch chan *Grid, mv chan int) {
+  ch = make(chan *Grid)
+  mv = make(chan int)
+
   g := Grid{
     Size: s,
     StartCells: c,
@@ -313,5 +317,19 @@ func NewGrid(s, c, m int) Grid {
 
   g.Build()
 
-  return g
+  go func(){
+    for {
+      select {
+      case move := <-mv:
+        if(move == -1) {
+          return
+        } else {
+          //Make a move and send the result
+          ch <- g.Shift(move)
+        }
+      }
+    }
+  }()
+
+  return ch, mv
 }
