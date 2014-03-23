@@ -45,27 +45,35 @@ type GameSock struct {
   G grid.Grid
 }
 
+type Event struct {
+  Name string
+  Data *grid.Grid
+}
+
 func NewGameSock (ws *websocket.Conn) {
   enc := json.NewEncoder(ws)
   dec := json.NewDecoder(ws)
 
-  grid, move := grid.NewGrid(4, 2, 2048)
+  grid, gridch, move := grid.NewGrid(4, 2, 2048)
 
   for {
-    select {
-    case g := <-grid:
-      fmt.Println("got something back")
-      enc.Encode(g);
-    default:
-      var V Message
-      err := dec.Decode(&V);
 
-      if err == nil {
-        move <- V.Data.Direction + 1
-        enc.Encode(<-grid)
-      } else {
-        panic(err.Error())
-      }
+    evt := Event{
+      Name: "grid",
+      Data: grid,
+    }
+
+    enc.Encode(evt)
+
+    var V Message
+    err := dec.Decode(&V);
+
+    if err == nil {
+      move <- V.Data.Direction + 1
+      enc.Encode(<-gridch)
+    } else {
+      panic(err.Error())
+      return
     }
   }
 }

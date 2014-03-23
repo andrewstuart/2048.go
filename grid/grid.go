@@ -313,7 +313,7 @@ func (g *Grid) EmptyCells() (ret []*Cell) {
 }
 
 //Returns a new grid. Negative moves sent to the m channel will terminate the grid.
-func NewGrid(s, c, m int) (ch chan *Grid, mv chan int) {
+func NewGrid(s, c, m int) (gr *Grid, ch chan *Grid, mv chan int) {
   ch = make(chan *Grid)
   mv = make(chan int)
 
@@ -343,5 +343,7 @@ func NewGrid(s, c, m int) (ch chan *Grid, mv chan int) {
     }
   }()
 
-  return ch, mv
+  gr = &g
+
+  return gr, ch, mv
 }
