@@ -22,6 +22,7 @@ type Tile struct {
   Current pos
   Prev pos
   New bool
+  Merged bool
 }
 
 func (t *Tile) Move (dest *Cell) {
@@ -30,6 +31,7 @@ func (t *Tile) Move (dest *Cell) {
 }
 
 func (t *Tile) Merge (tn *Tile) {
+  t.Merged = true
   t.Value += tn.Value //Future proofs for other merge rules. Fibonacci game??? Yes please. TODO
   t.MergeHistory = append(t.MergeHistory, tn)
 }
@@ -220,6 +222,7 @@ func (g *Grid) Shift(d int) (*Grid) {
 
       if(cell.Tile != nil) { //If there's something here and somewhere to move it. Otherwise do nothing this iteration
         cell.Tile.New = false
+        cell.Tile.Merged = false
         if dest.Pos != cell.Pos { //If they're not the same cells
           if dest.Tile != nil {
             if dest.Tile.Value == cell.Tile.Value { //If the value at the second finger matches the value at the current finger, merge.
