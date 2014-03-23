@@ -153,7 +153,7 @@ type vector struct {
 }
 
 var dMap = map[int]vector{
-  1: vector{ //Up
+  3: vector{ //Up
     X: 0,
     Y: 1,
     Label: "Up",
@@ -163,7 +163,7 @@ var dMap = map[int]vector{
     Y: 0,
     Label: "Right",
   },
-  3: vector{ //Down
+  1: vector{ //Down
     X: 0,
     Y: -1,
     Label: "Down",
@@ -318,6 +318,9 @@ func NewGrid(s, c, m int) (ch chan *Grid, mv chan int) {
   g.Build()
 
   go func(){
+    defer close(ch)
+    defer close(mv)
+
     for {
       select {
       case move := <-mv:
