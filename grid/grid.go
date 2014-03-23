@@ -22,7 +22,6 @@ type Tile struct {
   Current pos
   Prev pos
   New bool
-  Merged bool
 }
 
 func (t *Tile) Move (dest *Cell) {
@@ -33,7 +32,6 @@ func (t *Tile) Move (dest *Cell) {
 func (t *Tile) Merge (tn *Tile) {
   t.Value += tn.Value //Future proofs for other merge rules. Fibonacci game??? Yes please. TODO
   t.MergeHistory = append(t.MergeHistory, tn)
-  t.Merged = true
 }
 
 func randVal() *rand.Rand {
@@ -68,7 +66,6 @@ type Grid struct {
   Cells [][]*Cell
   Score int
   maxScore int
-  toRemove TileList
 }
 
 type Cell struct {
@@ -205,10 +202,6 @@ func (g *Grid) Shift(d int) (*Grid) {
 
   moved := false
 
-  for _, t := range g.toRemove {
-    g.Tiles = g.Tiles.remove(t)
-  }
-
   start, end, delta := g.getEdge(&v)
 
   for i:= start; i != end; i += delta {
@@ -227,7 +220,6 @@ func (g *Grid) Shift(d int) (*Grid) {
 
       if(cell.Tile != nil) { //If there's something here and somewhere to move it. Otherwise do nothing this iteration
         cell.Tile.New = false
-        cell.Tile.Merged = false
         if dest.Pos != cell.Pos { //If they're not the same cells
           if dest.Tile != nil {
             if dest.Tile.Value == cell.Tile.Value { //If the value at the second finger matches the value at the current finger, merge.
@@ -240,9 +232,8 @@ func (g *Grid) Shift(d int) (*Grid) {
                 g.Reset()
               }
               //Now remove the old 
-              g.toRemove = append(g.toRemove, cell.Tile)
-              cell.Tile.Move(dest)
               moved = true
+              g.Tiles = g.Tiles.remove(cell.Tile)
               //Always increment finger2 after a merge
               f2 += delta
               cell.Tile = nil
