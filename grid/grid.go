@@ -203,6 +203,8 @@ func (g *Grid) getEdge (v *vector) (start, end, delta int) {
 func (g *Grid) Shift(d int) (*Grid) {
   v := dMap[d]
 
+  moved := false
+
   for _, t := range g.toRemove {
     g.Tiles = g.Tiles.remove(t)
   }
@@ -240,6 +242,7 @@ func (g *Grid) Shift(d int) (*Grid) {
               //Now remove the old 
               g.toRemove = append(g.toRemove, cell.Tile)
               cell.Tile.Move(dest)
+              moved = true
               //Always increment finger2 after a merge
               f2 += delta
               cell.Tile = nil
@@ -254,12 +257,14 @@ func (g *Grid) Shift(d int) (*Grid) {
 
               if dest.Pos != cell.Pos {
                 cell.Tile.Move(dest)
+                moved = true
                 dest.Tile = cell.Tile
                 cell.Tile = nil
               }
             }
           } else {
             cell.Tile.Move(dest)
+            moved = true
             dest.Tile = cell.Tile
             cell.Tile = nil
           }
@@ -267,7 +272,9 @@ func (g *Grid) Shift(d int) (*Grid) {
       }
     }
   }
-  g.newTile()
+  if(moved) {
+    g.newTile()
+  }
 
   return g
 }
