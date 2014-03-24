@@ -6,6 +6,8 @@ import (
   "encoding/json"
   "code.google.com/p/go.net/websocket"
   "net/http"
+  "database/sql"
+  _ "github.com/go-sql-driver/mysql"
 )
 
 func printGrid (g grid.Grid) {
@@ -50,26 +52,52 @@ type Event struct {
   Data *grid.Grid
 }
 
+var db, _ = sql.Open("mysql", "twentyfortyeight:Pipeline97@tcp(mysql:3306)/twentyfortyeight?parseTime=true")
+
+func newSqlGame() int64 {
+  result, err := db.Exec(fmt.Sprintf("insert into games (size, maxScore) values (%d, %d)", 4, 2048))
+
+  if err != nil {
+    panic(err.Error())
+  }
+
+  id, err := result.LastInsertId()
+
+  if err != nil {
+    panic(err.Error())
+  }
+
+  return id
+}
+
 func NewGameSock (ws *websocket.Conn) {
   enc := json.NewEncoder(ws)
   dec := json.NewDecoder(ws)
 
+  id := newSqlGame()
+
   grid, gridch, move := grid.NewGrid(4, 2, 2048)
 
+  evt := Event{
+    Name: "grid",
+    Data: grid,
+  }
+
+  enc.Encode(evt)
   for {
-
-    evt := Event{
-      Name: "grid",
-      Data: grid,
-    }
-
-    enc.Encode(evt)
-
     var V Message
     err := dec.Decode(&V);
 
     if err == nil {
-      move <- V.Data.Direction + 1
+
+      d := V.Data.Direction + 1
+      _, err := db.Exec("INSERT INTO moves (direction, gameId) values ( ? , ? )", d, id)
+
+      if err != nil {
+        panic(err.Error())
+      }
+
+      move <- d
       enc.Encode(<-gridch)
     } else {
       panic(err.Error())

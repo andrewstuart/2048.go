@@ -68,6 +68,7 @@ type Grid struct {
   Cells [][]*Cell
   Score int
   maxScore int
+  GameOver bool
 }
 
 type Cell struct {
@@ -110,17 +111,10 @@ func (g *Grid) Reset() {
   }
   g.Score = 0
   g.Tiles = make(TileList, 0)
+  g.GameOver = false;
 }
 
 func (g *Grid) newTile() {
-
-  if(len(g.Tiles) == g.Size * g.Size) {
-    if(!g.matchesRemaining()) {
-      fmt.Printf("YOU LOSE. Your score was: %d", g.Score)
-      fmt.Println()
-      g.Reset()
-    }
-  }
 
   avail := g.EmptyCells()
 
@@ -200,6 +194,10 @@ func (g *Grid) getEdge (v *vector) (start, end, delta int) {
 //Merge Tile to prev 
 //Remove Tile ([2, 2, 4] .. [2 <-- 2, 4] .. [4, 4])
 func (g *Grid) Shift(d int) (*Grid) {
+  if g.GameOver {
+    return g
+  }
+
   v := dMap[d]
 
   moved := false
@@ -266,6 +264,13 @@ func (g *Grid) Shift(d int) (*Grid) {
       }
     }
   }
+
+  if(len(g.Tiles) == g.Size * g.Size) {
+    if(!g.matchesRemaining()) {
+      g.GameOver = true
+    }
+  }
+
   if(moved) {
     g.newTile()
   }
@@ -334,8 +339,9 @@ func NewGrid(s, c, m int) (gr *Grid, ch chan *Grid, mv chan int) {
     for {
       select {
       case move := <-mv:
-        if(move == -1) {
-          return
+        if(move == 0) {
+          g.Reset()
+          ch <- &g
         } else {
           //Make a move and send the result
           ch <- g.Shift(move)
