@@ -32,14 +32,17 @@ func printGrid (g grid.Grid) {
   }
 }
 
+type move int
+
 type Message struct {
-  Name string
-  Move int
+  Name string `json:"name"`
+  Move move   `json:"move"`
 }
 
 type Player struct {
   Socket *websocket.Conn
   Grid grid.Grid
+  History []*move //Persist later as a bulk SQL transaction rather than each time
 }
 
 type Event struct {
@@ -79,6 +82,7 @@ func NewGameSock (ws *websocket.Conn) {
   }
 
   enc.Encode(evt)
+
   for {
     var V Message
     err := dec.Decode(&V);
