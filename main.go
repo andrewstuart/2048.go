@@ -50,7 +50,7 @@ type Event struct {
   Data *grid.Grid
 }
 
-var db, _ = sql.Open("mysql", "twentyfortyeight:Pipeline97@tcp(mysql:3306)/twentyfortyeight?parseTime=true")
+var db sql.DB
 
 func newSqlGame() int64 {
   result, err := db.Exec(fmt.Sprintf("insert into games (size, maxScore) values (%d, %d)", 4, 2048))
@@ -107,6 +107,7 @@ func NewGameSock (ws *websocket.Conn) {
 
 
 func main() {
+  db, err = sql.Open("mysql", "twentyfortyeight:Pipeline97@tcp(mysql:3306)/twentyfortyeight?parseTime=true")
 
   http.Handle("/game", websocket.Handler(NewGameSock))
   err := http.ListenAndServe(":12345", nil)
