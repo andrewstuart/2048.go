@@ -32,19 +32,14 @@ func printGrid (g grid.Grid) {
   }
 }
 
-type Move struct {
-  Direction int
-}
-
 type Message struct {
   Name string
-  Data Move
+  Move int
 }
 
-type GameSock struct {
-  enc json.Encoder
-  dec json.Decoder
-  G grid.Grid
+type Player struct {
+  Socket *websocket.Conn
+  Grid grid.Grid
 }
 
 type Event struct {
