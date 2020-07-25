@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
-)
 
-var idSeed uint = 0
+	"github.com/rs/xid"
+)
 
 //Position structure
 type pos struct {
@@ -16,7 +16,7 @@ type pos struct {
 
 //Tiles track value and position on the grid
 type tile struct {
-	ID           uint
+	ID           xid.ID
 	Value        int
 	MergeHistory tileList
 	Current      pos
@@ -110,29 +110,34 @@ func (g *Grid) Reset() {
 	g.Tiles = make(tileList, 0)
 }
 
-func (g *Grid) newTile() {
+type LoseErr struct {
+	G *Grid
+}
+
+func (l *LoseErr) Error() string {
+	return fmt.Sprintf("You've lost. Your score was %d", l.G.Score)
+}
+
+func (g *Grid) newTile() error {
 	if len(g.Tiles) == g.Size*g.Size {
 		if !g.matchesRemaining() {
-			fmt.Printf("YOU LOSE. Your score was: %d", g.Score)
-			fmt.Println()
-			g.Reset()
+			return &LoseErr{
+				G: g,
+			}
 		}
 	}
 
 	avail := g.EmptyCells()
 
 	if len(avail) == 0 {
-		return
+		return nil
 	}
 	//Two random values between 0 and Grid.Size
 	i := randVal().Int() % len(avail)
 	cell := avail[i]
 
-	id := idSeed //Will concurrency screw with this?
-	idSeed += 1
-
 	newTile := tile{
-		ID:           id,
+		ID:           xid.New(),
 		Value:        randTileVal(),
 		MergeHistory: make(tileList, 0),
 		Current:      cell.Pos,
@@ -142,7 +147,7 @@ func (g *Grid) newTile() {
 	g.Tiles = append(g.Tiles, &newTile)
 	cell.Tile = &newTile
 
-	return
+	return nil
 }
 
 type vector struct {
@@ -151,23 +156,30 @@ type vector struct {
 	Label string
 }
 
+const (
+	DirUp int = iota + 1
+	DirRight
+	DirDown
+	DirLeft
+)
+
 var dMap = map[int]vector{
-	1: vector{ //Up
+	DirUp: { //Up
 		X:     0,
 		Y:     1,
 		Label: "Up",
 	},
-	2: vector{ //Right
+	DirRight: { //Right
 		X:     1,
 		Y:     0,
 		Label: "Right",
 	},
-	3: vector{ //Down
+	DirDown: { //Down
 		X:     0,
 		Y:     -1,
 		Label: "Down",
 	},
-	4: vector{ //Left
+	DirLeft: { //Left
 		X:     -1,
 		Y:     0,
 		Label: "Left",
@@ -196,7 +208,7 @@ func (g *Grid) getEdge(v *vector) (start, end, delta int) {
 //If tile value matches prev tile value
 //Merge tile to prev
 //Remove tile ([2, 2, 4] .. [2 <-- 2, 4] .. [4, 4])
-func (g *Grid) Shift(d int) *Grid {
+func (g *Grid) Shift(d int) error {
 	v := dMap[d]
 
 	start, end, delta := g.getEdge(&v)
@@ -257,9 +269,7 @@ func (g *Grid) Shift(d int) *Grid {
 			}
 		}
 	}
-	g.newTile()
-
-	return g
+	return g.newTile()
 }
 
 func (g *Grid) matchesRemaining() bool {
